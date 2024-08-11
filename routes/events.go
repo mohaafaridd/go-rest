@@ -52,6 +52,7 @@ func getEventById(context *gin.Context) {
 }
 
 func createEvent(context *gin.Context) {
+
 	var event models.Event
 
 	err := context.ShouldBindJSON(&event)
@@ -61,8 +62,7 @@ func createEvent(context *gin.Context) {
 		return
 	}
 
-	event.ID = 1
-	event.UserID = 1
+	event.UserID = context.GetInt64("userId")
 
 	err = event.Save()
 
@@ -87,11 +87,19 @@ func updateEvent(context *gin.Context) {
 		return
 	}
 
-	_, err = models.GetEventById(eventId)
+	event, err := models.GetEventById(eventId)
 
 	if err != nil {
 		context.JSON(http.StatusNotFound, gin.H{
 			"message": "Event wasn't found",
+		})
+
+		return
+	}
+
+	if event.UserID != context.GetInt64("userId") {
+		context.JSON(http.StatusForbidden, gin.H{
+			"message": "Invalid ownership",
 		})
 
 		return
@@ -139,6 +147,14 @@ func deleteEvent(context *gin.Context) {
 	if err != nil {
 		context.JSON(http.StatusNotFound, gin.H{
 			"message": "Event wasn't found",
+		})
+
+		return
+	}
+
+	if event.UserID != context.GetInt64("userId") {
+		context.JSON(http.StatusForbidden, gin.H{
+			"message": "Invalid ownership",
 		})
 
 		return
