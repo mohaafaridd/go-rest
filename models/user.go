@@ -1,6 +1,8 @@
 package models
 
 import (
+	"errors"
+
 	"example.com/events/db"
 	"example.com/events/utils"
 )
@@ -40,6 +42,27 @@ func (user *User) Save() error {
 	}
 
 	user.ID = id
+
+	return nil
+}
+
+func (user *User) ValidateCredentials() error {
+	query := "SELECT id, password FROM users WHERE email = ?"
+	row := db.DB.QueryRow(query, user.Email)
+
+	var retrievedPassword string
+
+	err := row.Scan(&user.ID, &retrievedPassword)
+
+	if err != nil {
+		return errors.New("invalid credentials")
+	}
+
+	isValidPassword := utils.CheckPasswordHash(user.Password, retrievedPassword)
+
+	if !isValidPassword {
+		return errors.New("invalid credentials")
+	}
 
 	return nil
 }
